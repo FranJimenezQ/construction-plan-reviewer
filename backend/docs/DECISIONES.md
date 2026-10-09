@@ -69,6 +69,7 @@
 - Si falta un documento requerido, el criterio pasa a revisión manual.
 - Se guarda lo que propuso la IA y lo que decidió el humano: es el set de
   evaluación.
+- Se guardan resultado_ia y resultado_final por separado; resultado_ia nunca se modifica.
 
 ## Materiales y estética
 - La lista negra de materiales (Reglamento, Art. 14a) pertenece al criterio
@@ -94,7 +95,6 @@
   endpoints, configuración, tests y PDF.
 
 ## Pendientes
-- Diseñar ItemResult.
 - Mover los criterios de checklist.py a un archivo JSON versionado.
 - Modelar la excepción de retiros (pared incombustible sin ventanas).
 - Cobertura máxima variable según el lote.
