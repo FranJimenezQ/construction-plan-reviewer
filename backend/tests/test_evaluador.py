@@ -1,5 +1,7 @@
+from app.engine.evaluador import evaluar
 from app.engine.evaluador import cumple_regla, regla_aplica
-from app.models.checklist import Regla
+from app.models.checklist import Regla, altura_maxima, dormitorios
+from app.models.result import Resultado
 
 
 # ---------- cumple_regla ----------
@@ -32,3 +34,18 @@ def test_regla_no_aplica_si_no_coincide():
     regla = Regla(magnitud="altura", maximo=10.0, unidad="m", condicion={"plantas": 2})
     hechos = {"altura": 8.5, "plantas": 1}
     assert regla_aplica(regla, hechos) is False
+
+def test_dormitorio_angosto_no_cumple():
+    hechos = {"area": 9.5, "lado_menor": 2.0}
+    assert evaluar(dormitorios, hechos).resultado == Resultado.NO_CUMPLE
+
+
+def test_altura_sin_plantas_no_decide():
+    hechos = {"altura": 4.98}
+    assert evaluar(altura_maxima, hechos).resultado is None
+
+def test_dormitorio_sin_lado_no_decide():
+    hechos = {"area": 9.5}
+    resultado = evaluar(dormitorios, hechos)
+    assert resultado.resultado is None
+    assert "lado_menor" in resultado.faltantes

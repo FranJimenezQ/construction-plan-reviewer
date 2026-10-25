@@ -11,8 +11,8 @@ class EstadoRevision(str, Enum):
 
 class Resultado(str, Enum):
     CUMPLE = "cumple"
-    NO_CUMPLE = "no cumple"
-    NO_APLICA = "no aplica"
+    NO_CUMPLE = "no_cumple"
+    NO_APLICA = "no_aplica"
 
 class Evidencia(BaseModel):
     archivo: str | None = None
