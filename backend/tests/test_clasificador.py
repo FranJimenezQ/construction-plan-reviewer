@@ -1,5 +1,7 @@
 from app.engine.clasificador import normalizar, clasificar_texto
 from app.models.checklist import TipoVista
+import pymupdf
+from app.engine.clasificador import clasificar_pdf
 
 
 def test_quita_tildes_y_pasa_a_mayusculas():
@@ -37,3 +39,18 @@ def test_detalle_de_corte_no_es_corte():
 
 def test_corte_de_tuberia_no_es_corte():
     assert TipoVista.CORTES not in clasificar_texto("CORTE 45º")
+
+def test_clasificar_pdf_por_pagina(tmp_path):
+    # Crear un PDF de 2 páginas con textos que imitan tus láminas
+    ruta = tmp_path / "prueba.pdf"
+    pdf = pymupdf.open()
+    pdf.new_page().insert_text((72, 72), "PLANTA DE TECHOS")
+    pdf.new_page().insert_text((72, 72), "ELEVACION PRINCIPAL  CORTE A-A")
+    pdf.save(ruta)
+
+    resultado = clasificar_pdf(str(ruta))
+
+    assert len(resultado) == 2
+    assert resultado[0].pagina == 1
+    assert resultado[0].vistas == {TipoVista.TECHOS}
+    assert resultado[1].vistas == {TipoVista.ELEVACIONES, TipoVista.CORTES}
