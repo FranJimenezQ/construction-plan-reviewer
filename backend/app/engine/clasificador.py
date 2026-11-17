@@ -4,6 +4,13 @@ import pymupdf
 from app.models.checklist import TipoVista
 from app.data.sinonimos import SINONIMOS
 import re
+import os
+
+# Modelo para clasificar_pdf . PaginaClasificada, contiene archivo, pagina y vistas
+class PaginaClasificada(BaseModel):
+    archivo: str
+    pagina: int
+    vistas: set[TipoVista]
 
 # Deja un texto listo para comparar con el diccionario de sinónimos:
 # mayúsculas, sin tildes y con un solo espacio entre palabras.
@@ -37,29 +44,32 @@ def clasificar_texto(texto: str) -> set[TipoVista]:
         vistas_encontradas.add(TipoVista.CORTES)
     return vistas_encontradas
 
+# Busca el cuadro del índice: el rectángulo dibujado más pequeño
+# que contiene el texto "INDICE". Devuelve None si no hay índice.
+def encontrar_zona_indice(pagina) -> pymupdf.Rect | None:
+    for bloque in pagina.get_text("blocks"):
+        if normalizar(bloque[4]) == "INDICE":
+            rect_indice = pymupdf.Rect(bloque[:4])
+            marcos = [d["rect"] for d in pagina.get_drawings()
+                      if d["rect"].contains(rect_indice)]
+            if marcos:
+                return min(marcos, key=lambda r: r.get_area())
+    return None
 
-# Modelo para clasificar_pdf . PaginaClasificada, contiene archivo, pagina y vistas
-
-class PaginaClasificada(BaseModel):
-    archivo: str
-    pagina: int
-    vistas: set[TipoVista]
-
-# Abre un PDF y clasifica cada página.
+# Abre un PDF y clasifica cada página bloque por bloque,
+# ignorando el texto que está dentro del cuadro del índice.
 # Ej: "Lam-02.pdf" -> [PaginaClasificada(archivo="Lam-02.pdf", pagina=1, vistas={ELEVACIONES, CORTES})]
-    # Paso 1: abrir el PDF con pymupdf.open(ruta)
-    # Paso 2: lista vacía de resultados
-    # Paso 3: recorrer las páginas con enumerate(..., start=1)
-    #         (igual que en tu explorador_pdf.py)
-    #         para cada página: extraer el texto, clasificarlo
-    #         y agregar un PaginaClasificada a la lista
-    # Paso 4: devolver la lista
 
 def clasificar_pdf(ruta: str) -> list[PaginaClasificada]:
     pdf = pymupdf.open(ruta)
     resultados = []
     for numero, pagina in enumerate(pdf, start=1):
-        texto = pagina.get_text()
-        vistas = clasificar_texto(texto)
-        resultados.append(PaginaClasificada(archivo=ruta, pagina=numero, vistas=vistas))
+        zona_indice = encontrar_zona_indice(pagina)
+        vistas = set()
+        for bloque in pagina.get_text("blocks"):
+            rect_bloque = pymupdf.Rect(bloque[:4])
+            if zona_indice and zona_indice.contains(rect_bloque):
+                continue
+            vistas.update(clasificar_texto(bloque[4]))
+        resultados.append(PaginaClasificada(archivo=os.path.basename(ruta), pagina=numero, vistas=vistas))
     return resultados
